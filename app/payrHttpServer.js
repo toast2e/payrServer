@@ -1,40 +1,44 @@
-var http = require('http');
-var HttpDispatcher = require('httpdispatcher');
-var dispatcher = new HttpDispatcher();
+const express = require('express')
+const bodyParser = require('body-parser')
+const app = express()
 
-const PORT = 8080;
+const port = 8080;
 
-dispatcher.setStatic('resources');
+// Create application/x-www-form-urlencoded parser
+var urlencodedParser = bodyParser.urlencoded({ extended: false })
 
 var amount = 0;
 
+app.use(urlencodedParser)
+app.use(bodyParser.json())
+app.use(express.static('resources'))
+
+// set up error handler
+app.use((err, request, response, next) => {  
+	// log the error, for now just console.log
+	console.log(err)
+	response.status(500).send('Something broke!')
+})
+
 // handle get amount
-dispatcher.onGet("/amount", function(req, res) {
-	res.writeHead(200, {'Content-Type': 'text/plain'});
+app.get('/amount', (request, response) => {
 	console.log("Amount requested. Returning %s.", amount);
 	var ret = "amount = " + amount;
-	res.end(ret);
-});
+	response.send(ret);
+})
 
-// handle updating the amount
-dispatcher.onPost("/amount", function(req, res) {
-	amount = req.body;
-	console.log("Updated amount to %s", amount);
-	res.writeHead(200, {'Content-Type': 'text/plain'});
-	res.end(amount);
-});
+// handle updating amount
+app.post('/amount', urlencodedParser, (request, response) => {
+	console.dir(request.body)
+	amount = request.body.amount;
+	console.log(`Updated amount to be ${amount}`)
+	response.end(amount)
+})
 
-function handleRequest(request, response){
-	try{
-		console.log(request.url);
-		dispatcher.dispatch(request, response);
-	} catch(err) {
-		console.log(err);
+app.listen(port, (err) => {
+	if(err) {
+		return console.log('something bad happened', err)
 	}
-}
 
-var server = http.createServer(handleRequest);
-
-server.listen(PORT, function(){
-	console.log("Server listening on: http://localhost:%s", PORT);
-});
+	console.log(`server is listening on ${port}`)
+})
