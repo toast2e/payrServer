@@ -1,6 +1,7 @@
 const express = require('express')
 const bodyParser = require('body-parser')
 const app = express()
+const pg = require('pg')
 
 const port = 8080;
 
@@ -29,16 +30,33 @@ app.get('/amount', (request, response) => {
 
 // handle updating amount
 app.post('/amount', urlencodedParser, (request, response) => {
-	console.dir(request.body)
+	console.log(request.body)
 	amount = request.body.amount;
 	console.log(`Updated amount to be ${amount}`)
-	response.end(amount)
+	response.end("" + amount)
 })
 
 app.listen(port, (err) => {
 	if(err) {
 		return console.log('something bad happened', err)
 	}
-
 	console.log(`server is listening on ${port}`)
 })
+
+function retrieveCurrentValueFromDB(){
+	pg.connect(process.env.DATABASE_URL, function(err, client, done){
+		if(err){
+			console.log(err)
+		}
+
+		client.query("select amount from test.owes", [], function(err, result) {
+			done()
+			if(err){
+				console.log(err)
+			}
+			console.log(result)
+			var amount = result.rows[0].amount
+			console.log('retrieved the following value from the db = %s', amount)
+		})
+	})
+}
